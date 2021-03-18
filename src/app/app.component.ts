@@ -5,6 +5,7 @@ import _ from 'lodash';
 import * as moment from 'moment';
 import * as holidaList from './holiday-list.json';
 type OccuranceType = 'daily' | 'weekly' | 'monthly' | 'yearly';
+import Swal from 'sweetalert2'
 import { HolidayListType } from './HolidayList';
 @Component({
   selector: 'app-root',
@@ -24,12 +25,16 @@ export class AppComponent {
   ngOnInit(){
     this.holidayList = {...(holidaList as any).default};
   }
-  getDaysFromFrequencyType(frequencyType: OccuranceType){
+  getDaysFromFrequencyType(frequencyType: OccuranceType, date){
     switch (frequencyType) {
       case 'daily':
         return 1;
       case 'weekly':
         return 7;
+      case 'monthly':
+        return moment(date, "DD-MM-YYYY").daysInMonth();
+      case 'yearly':
+        return 365;
       default:
         break;
     }
@@ -46,30 +51,53 @@ export class AppComponent {
   getNonHolidayDate(date){
     if(!this.isTheDayIsHoliday(date)){
       return date;
+    }else {
+      let nextDate = moment(date, 'DD-MM-YYYY').add(1, 'days').format('DD-MM-YYYY')
+      return this.getNonHolidayDate(nextDate);
     }
-    let nextDate = moment(date.setDate(date.getDate() + 1)).format('DD-MM-YYYY');
-    this.getNonHolidayDate(nextDate);
   }
   getNextDateOfOccurance(date, frequencyNo){
-    let requiredDate = moment(date.setDate(date.getDate() + frequencyNo)).format('DD-MM-YYYY');
+    let requiredDate = moment(date, 'DD-MM-YYYY').add(frequencyNo, 'days').format('DD-MM-YYYY');
     return this.getNonHolidayDate(requiredDate);
   }
-  updateDueDates(frequencyType: OccuranceType, occuranceNumber?, startDate?) {
+  updateDueDates(frequencyType: OccuranceType, occuranceNumber, startDate) {
     this.dueDates = [];
-    let occuranceNo = occuranceNumber? occuranceNumber : 10;
-    let startingDate = startDate ? startDate : moment().format('DD-MM-YYYY');
-    let frequencyDayNo = this.getDaysFromFrequencyType(frequencyType);
-
-    let nonHolidayStartingDate = this.getNonHolidayDate(startingDate);
+    let frequencyDayNo = this.getDaysFromFrequencyType(frequencyType, startDate);
+    let nonHolidayStartingDate = this.getNonHolidayDate(startDate);
     let nextDateOfOccurance = nonHolidayStartingDate;
-    for (let i = 0; i < occuranceNo; i++) {
+    console.log('nextDateOfOccurance', nextDateOfOccurance);
+    for (let i = 0; i < occuranceNumber; i++) {
+      frequencyDayNo = this.getDaysFromFrequencyType(frequencyType, nextDateOfOccurance);
       nextDateOfOccurance = this.getNextDateOfOccurance(nextDateOfOccurance, frequencyDayNo);
       this.dueDates.push(nextDateOfOccurance);
     }
   }
+  getMomentSupportedDate(dateObj){
+    return moment(new Date((dateObj).year,(dateObj).month, (dateObj).day)).format('DD-MM-YYYY');
+  }
   viewDueDates(form: NgForm) {
-    console.log('form', form.value);
-    this.updateDueDates(form.value.frequency);
+    if(form.invalid){
+      console.log(form);
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'Please fill all the required field!'
+      })
+      return;
+    }
+    let startDate = moment().format('DD-MM-YYYY');
+    let endDate = '';
+    let occurance = 10;
+    if(form.value.startFrom){
+      startDate = this.getMomentSupportedDate(form.value.startFrom);
+    }
+    if(form.value.endsBy){
+      endDate = this.getMomentSupportedDate(form.value.endsBy);
+    }
+    if(form.value.occurance){
+      occurance = +form.value.occurance;
+    }
+    this.updateDueDates(form.value.frequency, occurance, startDate);
     this.viewdueDateStatus = true;
   }
   responsibilityChange(event) {
