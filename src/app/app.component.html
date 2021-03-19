@@ -46,7 +46,7 @@
                   class="form-control"
                   placeholder="yyyy-mm-dd"
                   name="startFrom"
-                  ngModel
+                  [(ngModel)] = "startFromModel"
                   ngbDatepicker
                   #startFromDP="ngbDatepicker"
                 />
@@ -70,7 +70,7 @@
                   class="form-control"
                   placeholder="yyyy-mm-dd"
                   name="endsBy"
-                  ngModel
+                  [(ngModel)] = "endsByModel"
                   ngbDatepicker
                   #endsByDP="ngbDatepicker"
                 />
